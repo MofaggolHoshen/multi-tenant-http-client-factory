@@ -50,6 +50,22 @@ public class MultiTenantHttpClientBuilder
     }
 
     /// <summary>
+    /// Registers an in-memory tenant store pre-populated with the given tenants.
+    /// Ideal for testing and static configuration scenarios.
+    /// </summary>
+    public MultiTenantHttpClientBuilder WithInMemoryStore(
+        IEnumerable<MultiTenantHttpClientFactory.Abstractions.Models.TenantConfiguration>? initialTenants = null)
+    {
+        var store = initialTenants != null
+            ? new InMemoryTenantStore(initialTenants)
+            : new InMemoryTenantStore();
+
+        _services.AddSingleton<ITenantStore>(store);
+        _services.AddSingleton(store); // Also register as concrete type for mutation
+        return this;
+    }
+
+    /// <summary>
     /// Registers JSON configuration-based tenant store.
     /// </summary>
     public MultiTenantHttpClientBuilder WithJsonConfiguration(string sectionName = "Tenants")

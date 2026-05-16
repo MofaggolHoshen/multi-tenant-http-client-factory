@@ -15,7 +15,7 @@ namespace MultiTenantHttpClientFactory.Configuration;
 /// In-memory tenant store backed by a ConcurrentDictionary.
 /// Useful for testing and scenarios where configuration comes from code.
 /// </summary>
-internal class InMemoryTenantStore : ITenantStore
+public class InMemoryTenantStore : ITenantStore
 {
     private readonly ConcurrentDictionary<string, TenantConfiguration> _tenants;
     private CancellationTokenSource _changeTokenSource;
@@ -86,15 +86,22 @@ internal class InMemoryTenantStore : ITenantStore
 
     private void FireChangeToken()
     {
+        // Swap in new source BEFORE canceling old one.
+        // Callbacks registered on CancellationChangeToken fire synchronously during Cancel().
+        // If those callbacks call GetReloadToken(), they must see the fresh (unfired) token
+        // to avoid registering on an already-fired token, which would re-fire immediately → stack overflow.
+        var oldSource = Interlocked.Exchange(ref _changeTokenSource, new CancellationTokenSource());
         try
         {
-            _changeTokenSource.Cancel();
+            oldSource.Cancel();
         }
         catch (ObjectDisposedException)
         {
             // Already disposed
         }
-
-        _changeTokenSource = new CancellationTokenSource();
+        finally
+        {
+            oldSource.Dispose();
+        }
     }
 }

@@ -11,7 +11,7 @@ namespace MultiTenantHttpClientFactory.TenantResolution;
 /// Resolves tenant from the first subdomain segment.
 /// E.g., tenantA.api.example.com → "tenantA"
 /// </summary>
-internal class SubdomainTenantResolver : ITenantResolver
+public class SubdomainTenantResolver : ITenantResolver
 {
     private readonly int _segmentIndex;
     private readonly string? _baseDomain;
@@ -31,8 +31,8 @@ internal class SubdomainTenantResolver : ITenantResolver
 
         var host = context.Request.Host.Host;
 
-        // Skip IP addresses
-        if (host.Contains(':') || !host.Contains('.'))
+        // Skip IPv6, IPv4 addresses, and single-segment hosts (no subdomain possible)
+        if (host.Contains(':') || !host.Contains('.') || System.Net.IPAddress.TryParse(host, out _))
             return Task.FromResult<string?>(null);
 
         var segments = host.Split('.');

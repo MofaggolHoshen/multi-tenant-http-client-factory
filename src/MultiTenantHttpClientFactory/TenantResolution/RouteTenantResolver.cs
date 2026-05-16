@@ -11,7 +11,7 @@ namespace MultiTenantHttpClientFactory.TenantResolution;
 /// <summary>
 /// Resolves tenant from a route parameter (default: tenantId).
 /// </summary>
-internal class RouteTenantResolver : ITenantResolver
+public class RouteTenantResolver : ITenantResolver
 {
     private readonly string _routeParameterName;
     private readonly ILogger<RouteTenantResolver>? _logger;

@@ -13,7 +13,7 @@ namespace MultiTenantHttpClientFactory.TenantResolution;
 /// Orchestrates multiple ITenantResolver instances in registration order.
 /// Returns the first non-null result.
 /// </summary>
-internal class CompositeTenantResolver : ITenantResolver
+public class CompositeTenantResolver : ITenantResolver
 {
     private readonly IReadOnlyList<ITenantResolver> _resolvers;
     private readonly ILogger<CompositeTenantResolver> _logger;

@@ -11,7 +11,7 @@ namespace MultiTenantHttpClientFactory.TenantResolution;
 /// Resolves tenant from an authenticated user's claims.
 /// Default claim type: "tenant_id"
 /// </summary>
-internal class ClaimsTenantResolver : ITenantResolver
+public class ClaimsTenantResolver : ITenantResolver
 {
     private readonly string _claimType;
     private readonly ILogger<ClaimsTenantResolver>? _logger;

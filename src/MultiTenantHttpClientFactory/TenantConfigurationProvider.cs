@@ -21,6 +21,7 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
     private readonly ILogger<TenantConfigurationProvider> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _changeTokenSources;
     private readonly ConcurrentDictionary<string, Action> _invalidationCallbacks;
+    private readonly ConcurrentDictionary<string, bool> _cachedTenantIds;
     private IDisposable? _storeChangeSubscription;
     private volatile bool _disposed;
 
@@ -34,6 +35,7 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _changeTokenSources = new ConcurrentDictionary<string, CancellationTokenSource>();
         _invalidationCallbacks = new ConcurrentDictionary<string, Action>();
+        _cachedTenantIds = new ConcurrentDictionary<string, bool>();
 
         // Subscribe to store reload token
         SubscribeToStoreChanges();
@@ -69,6 +71,7 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
             };
 
             _cache.Set(cacheKey, config, cacheOptions);
+            _cachedTenantIds.TryAdd(tenantId, true);
             _logger.LogDebug("Tenant configuration retrieved from store and cached for {TenantId}", tenantId);
         }
         else
@@ -138,14 +141,23 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
     internal void InvalidateAll()
     {
         _logger.LogDebug("Invalidating all configuration caches");
-        _cache.Dispose();
 
-        foreach (var source in _changeTokenSources.Values)
+        // Remove all cached tenant entries
+        foreach (var tenantId in _cachedTenantIds.Keys)
         {
-            source?.Cancel();
-            source?.Dispose();
+            _cache.Remove($"tenant-config:{tenantId}");
+            _cachedTenantIds.TryRemove(tenantId, out _);
         }
-        _changeTokenSources.Clear();
+
+        // Cancel and clear all change token sources
+        foreach (var (tenantId, source) in _changeTokenSources)
+        {
+            if (_changeTokenSources.TryRemove(tenantId, out _))
+            {
+                try { source?.Cancel(); source?.Dispose(); }
+                catch (Exception) { /* Ignore disposal errors */ }
+            }
+        }
     }
 
     private void InvalidateChangeToken(string tenantId)

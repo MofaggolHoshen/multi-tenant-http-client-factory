@@ -41,27 +41,25 @@ public static class ServiceCollectionExtensions
             new CompositeTenantResolver(new List<ITenantResolver>(), sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CompositeTenantResolver>>()));
         services.AddSingleton<ITenantResolver>(sp => sp.GetRequiredService<CompositeTenantResolver>());
 
-        // Register certificate provider  
-        services.AddSingleton<CompositeCertificateProvider>();
-        services.AddSingleton<ICertificateProvider>(sp => sp.GetRequiredService<CompositeCertificateProvider>());
-
         // Register basic certificate providers
         services.AddSingleton<FileCertificateProvider>();
         services.AddSingleton<StoreCertificateProvider>();
         services.AddSingleton<Base64CertificateProvider>();
 
-        // Register default composite implementations
-        services.AddSingleton(sp =>
+        // Register certificate provider  
+        services.AddSingleton<CompositeCertificateProvider>(sp =>
         {
-            var composite = sp.GetRequiredService<CompositeCertificateProvider>();
-            
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CompositeCertificateProvider>>();
+            var composite = new CompositeCertificateProvider(logger);
+
             // Register built-in providers
             composite.Register(Abstractions.Models.CertificateType.File, sp.GetRequiredService<FileCertificateProvider>());
             composite.Register(Abstractions.Models.CertificateType.Store, sp.GetRequiredService<StoreCertificateProvider>());
             composite.Register(Abstractions.Models.CertificateType.Base64, sp.GetRequiredService<Base64CertificateProvider>());
-            
+
             return composite;
         });
+        services.AddSingleton<ICertificateProvider>(sp => sp.GetRequiredService<CompositeCertificateProvider>());
 
         return new MultiTenantHttpClientBuilder(services);
     }
