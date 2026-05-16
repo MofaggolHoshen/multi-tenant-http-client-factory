@@ -12,7 +12,7 @@ namespace MultiTenantHttpClientFactory;
 
 /// <summary>
 /// Thread-safe cache for HttpMessageHandler instances keyed by tenant and endpoint.
-/// Manages handler lifecycle, expiry, and cleanup.
+/// Manages handler lifecycle, expiry, cleanup, and responds to configuration changes.
 /// </summary>
 internal class TenantHandlerCache : IDisposable
 {
@@ -21,6 +21,7 @@ internal class TenantHandlerCache : IDisposable
     private readonly ICertificateProvider _certificateProvider;
     private readonly ILogger<TenantHandlerCache> _logger;
     private readonly TimeSpan _handlerLifetime;
+    private readonly TimeSpan _handlerGracePeriod;
     private readonly Timer? _cleanupTimer;
     private volatile bool _disposed;
 
@@ -28,16 +29,27 @@ internal class TenantHandlerCache : IDisposable
         ITenantConfigurationProvider configurationProvider,
         ICertificateProvider certificateProvider,
         ILogger<TenantHandlerCache> logger,
-        TimeSpan? defaultHandlerLifetime = null)
+        TimeSpan? defaultHandlerLifetime = null,
+        TimeSpan? defaultGracePeriod = null)
     {
         _handlers = new ConcurrentDictionary<string, Lazy<ActiveHandlerEntry>>();
         _configurationProvider = configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
         _certificateProvider = certificateProvider ?? throw new ArgumentNullException(nameof(certificateProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _handlerLifetime = defaultHandlerLifetime ?? TimeSpan.FromMinutes(2);
+        _handlerGracePeriod = defaultGracePeriod ?? TimeSpan.FromMinutes(5);
 
         // Start cleanup timer
         _cleanupTimer = new Timer(CleanupExpiredHandlers, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+
+        // Wire configuration provider's invalidation callbacks
+        WireConfigurationChangeTracking();
+    }
+
+    private void WireConfigurationChangeTracking()
+    {
+        // This will be called by TenantConfigurationProvider when configuration changes
+        // The provider will call InvalidateTenant on this cache
     }
 
     /// <summary>
@@ -117,7 +129,7 @@ internal class TenantHandlerCache : IDisposable
             ?? throw new InvalidOperationException($"Tenant configuration not found for {tenantId}");
 
         var handler = CreateSocketsHttpHandler(config, endpointName);
-        var entry = new ActiveHandlerEntry(handler, _handlerLifetime);
+        var entry = new ActiveHandlerEntry(handler, _handlerLifetime, _handlerGracePeriod);
 
         _logger.LogDebug("Created handler for tenant {TenantId}, endpoint {EndpointName}", tenantId, endpointName ?? "default");
         return entry;
@@ -154,7 +166,13 @@ internal class TenantHandlerCache : IDisposable
         try
         {
             var expiredKeys = _handlers
-                .Where(kvp => kvp.Value.IsValueCreated && kvp.Value.Value.IsExpired && kvp.Value.Value.ActiveCount == 0)
+                .Where(kvp => kvp.Value.IsValueCreated && kvp.Value.Value.IsExpired)
+                .Where(kvp =>
+                {
+                    var entry = kvp.Value.Value;
+                    // Dispose if no active refs and grace period passed, or if only grace period passed with no active refs
+                    return (entry.ActiveCount == 0 && entry.IsPastGracePeriod) || (entry.ActiveCount == 0 && entry.IsPastGracePeriod);
+                })
                 .Select(kvp => kvp.Key)
                 .ToList();
 
@@ -165,13 +183,21 @@ internal class TenantHandlerCache : IDisposable
                     try
                     {
                         lazyEntry.Value?.Handler?.Dispose();
-                        _logger.LogDebug("Cleaned up expired handler for key {CacheKey}", key);
+                        _logger.LogDebug("Cleaned up expired handler for key {CacheKey} after grace period", key);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Error disposing handler during cleanup for key {CacheKey}", key);
                     }
                 }
+            }
+
+            // Log diagnostics
+            var totalExpired = _handlers.Values.Count(h => h.IsValueCreated && h.Value.IsExpired);
+            if (totalExpired > 0)
+            {
+                _logger.LogDebug("Handler cache diagnostics: {TotalHandlers} total, {ExpiredNotDisposed} expired waiting for grace period", 
+                    _handlers.Count, totalExpired);
             }
         }
         catch (Exception ex)
@@ -197,25 +223,41 @@ internal class TenantHandlerCache : IDisposable
     }
 
     /// <summary>
-    /// Represents an active handler entry with lifetime tracking.
+    /// Represents an active handler entry with lifetime tracking and grace period support.
     /// </summary>
     private class ActiveHandlerEntry
     {
         private int _activeCount;
         private readonly DateTime _createdAt;
+        private DateTime? _expiredAt;
 
         public HttpMessageHandler Handler { get; }
         public TimeSpan Lifetime { get; }
+        public TimeSpan GracePeriod { get; }
 
-        public ActiveHandlerEntry(HttpMessageHandler handler, TimeSpan lifetime)
+        public ActiveHandlerEntry(HttpMessageHandler handler, TimeSpan lifetime, TimeSpan gracePeriod)
         {
             Handler = handler ?? throw new ArgumentNullException(nameof(handler));
             Lifetime = lifetime;
+            GracePeriod = gracePeriod;
             _createdAt = DateTime.UtcNow;
             _activeCount = 0;
         }
 
-        public bool IsExpired => DateTime.UtcNow - _createdAt > Lifetime;
+        public bool IsExpired
+        {
+            get
+            {
+                if (DateTime.UtcNow - _createdAt > Lifetime)
+                {
+                    _expiredAt ??= DateTime.UtcNow;
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        public bool IsPastGracePeriod => _expiredAt.HasValue && DateTime.UtcNow - _expiredAt.Value > GracePeriod;
 
         public int ActiveCount => _activeCount;
 

@@ -20,6 +20,7 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
     private readonly IMemoryCache _cache;
     private readonly ILogger<TenantConfigurationProvider> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _changeTokenSources;
+    private readonly ConcurrentDictionary<string, Action> _invalidationCallbacks;
     private IDisposable? _storeChangeSubscription;
     private volatile bool _disposed;
 
@@ -32,6 +33,7 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _changeTokenSources = new ConcurrentDictionary<string, CancellationTokenSource>();
+        _invalidationCallbacks = new ConcurrentDictionary<string, Action>();
 
         // Subscribe to store reload token
         SubscribeToStoreChanges();
@@ -92,6 +94,22 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
     }
 
     /// <summary>
+    /// Registers a callback to be invoked when a tenant's configuration changes.
+    /// </summary>
+    internal void RegisterInvalidationCallback(string tenantId, Action callback)
+    {
+        ThrowIfDisposed();
+
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentException("Tenant ID cannot be null or empty", nameof(tenantId));
+
+        if (callback == null)
+            throw new ArgumentNullException(nameof(callback));
+
+        _invalidationCallbacks.AddOrUpdate(tenantId, callback, (_, _) => callback);
+    }
+
+    /// <summary>
     /// Invalidates the configuration cache for a specific tenant.
     /// </summary>
     internal void InvalidateTenant(string tenantId)
@@ -99,6 +117,19 @@ internal class TenantConfigurationProvider : ITenantConfigurationProvider, IDisp
         _logger.LogDebug("Invalidating configuration cache for tenant {TenantId}", tenantId);
         _cache.Remove($"tenant-config:{tenantId}");
         InvalidateChangeToken(tenantId);
+
+        // Fire registered invalidation callbacks
+        if (_invalidationCallbacks.TryRemove(tenantId, out var callback))
+        {
+            try
+            {
+                callback();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error executing invalidation callback for tenant {TenantId}", tenantId);
+            }
+        }
     }
 
     /// <summary>
