@@ -49,6 +49,7 @@ All subsequent calls reuse same handler & config (performance!)
 ```
 
 **For detailed architecture & data flow**, see:
+
 - 📋 [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) — Complete architecture overview with all components
 - 🔄 [**DATA_FLOW.md**](docs/DATA_FLOW.md) — Step-by-step request lifecycle with diagrams
 
