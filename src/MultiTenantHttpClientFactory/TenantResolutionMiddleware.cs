@@ -11,7 +11,7 @@ namespace MultiTenantHttpClientFactory;
 /// ASP.NET Core middleware that resolves the tenant from the current request
 /// and populates the scoped ITenantContext.
 /// </summary>
-internal class TenantResolutionMiddleware
+public class TenantResolutionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<TenantResolutionMiddleware> _logger;

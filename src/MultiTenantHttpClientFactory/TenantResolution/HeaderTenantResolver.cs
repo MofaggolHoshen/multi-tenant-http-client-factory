@@ -10,7 +10,7 @@ namespace MultiTenantHttpClientFactory.TenantResolution;
 /// <summary>
 /// Resolves tenant from an HTTP header (default: X-Tenant-Id).
 /// </summary>
-internal class HeaderTenantResolver : ITenantResolver
+public class HeaderTenantResolver : ITenantResolver
 {
     private readonly string _headerName;
     private readonly ILogger<HeaderTenantResolver>? _logger;

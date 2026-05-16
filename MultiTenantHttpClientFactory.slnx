@@ -6,7 +6,4 @@
     <Project Path="src/MultiTenantHttpClientFactory.Abstractions/MultiTenantHttpClientFactory.Abstractions.csproj" />
     <Project Path="src/MultiTenantHttpClientFactory/MultiTenantHttpClientFactory.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/MultiTenantHttpClientFactory.Tests/MultiTenantHttpClientFactory.Tests.csproj" />
-  </Folder>
 </Solution>

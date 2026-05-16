@@ -159,20 +159,20 @@ MultiTenantHttpClientFactory.sln
 
 ---
 
-### Phase 6: Sample & Tests — 🔲 Not Started
+### Phase 6: Sample & Tests — 🔲 In Progress
 
 > **Goal**: Demonstrate the library in a realistic gateway scenario and validate correctness with comprehensive tests.
 
 | #   | Task                                   | Description                                                                                                                                                                                                                                                                                                                                        | Status |
 | --- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 6.1 | Build `SampleGateway` Program.cs       | ASP.NET Core Minimal API that registers multi-tenant HttpClient factory with 3 tenants (configured in appsettings.json). Exposes a `POST /proxy/{tenantId}/{*path}` endpoint that creates a client for the specified tenant and forwards the request to the tenant's configured backend. Demonstrates both explicit and implicit resolution.       | 🔲     |
-| 6.2 | Build `SampleGateway` appsettings.json | Configure 3 tenants: (a) TenantA — file-based .pfx cert, single endpoint; (b) TenantB — base64 inline cert, multiple endpoints (payments, notifications); (c) TenantC — no cert (plain HTTPS), custom headers. Show all model properties in use.                                                                                                   | 🔲     |
-| 6.3 | Unit tests: Tenant resolvers           | Test each resolver independently with mocked `HttpContext`. Verify header resolver reads correct header, route resolver extracts route value, subdomain parser handles edge cases (no subdomain, IP address, multi-level), claims resolver works with authenticated/unauthenticated user. Test composite resolver priority ordering.               | 🔲     |
-| 6.4 | Unit tests: Configuration provider     | Test `JsonFileTenantStore` with in-memory `IConfiguration`. Verify correct deserialization of all model properties. Test `InMemoryTenantStore` add/remove/change-token firing. Test `TenantConfigurationProvider` caching behavior (second call doesn't hit store, change token evicts cache).                                                     | 🔲     |
-| 6.5 | Unit tests: Certificate providers      | Test `FileCertificateProvider` with a test .pfx file. Test `Base64CertificateProvider` with a base64-encoded test cert. Test `CompositeCertificateProvider` routing. Verify `CertificateLoadException` thrown for invalid paths/data. Mock `CertificateClient` for Key Vault provider test.                                                        | 🔲     |
-| 6.6 | Unit tests: Factory integration        | End-to-end test with `InMemoryTenantStore` + mock handler (using `MockHttpMessageHandler` or custom `DelegatingHandler`). Verify: correct base address applied, correct headers set, correct cert attached to handler's SSL options, `TenantNotFoundException` for unknown tenant, handler reuse within lifetime.                                  | 🔲     |
-| 6.7 | Unit tests: Handler cache lifecycle    | Test with a controlled `ISystemClock` (or `TimeProvider` on .NET 8+). Verify: handler created on first access, same handler returned within lifetime, new handler created after expiry, expired handler not disposed immediately (grace period), disposed after grace period. Test concurrent access returns same handler (no duplicate creation). | 🔲     |
-| 6.8 | Integration tests: Hot-reload          | Start with config A, create client, modify config (simulate file change), verify next `CreateClient` call picks up new base address. Test cert rotation: swap cert in config, verify new handler uses new cert. Test tenant removal: remove tenant from store, verify `TenantNotFoundException`.                                                   | 🔲     |
+| 6.1 | Build `SampleGateway` Program.cs       | ASP.NET Core Minimal API that registers multi-tenant HttpClient factory with 3 tenants. Exposes proxy endpoint. | ✅     |
+| 6.2 | Build `SampleGateway` appsettings.json | Configure 3 tenants (TenantA with file cert, TenantB with base64 cert + multi-endpoints, TenantC without cert). | ✅     |
+| 6.3 | Unit tests: Tenant resolvers           | Test each resolver independently. Verify header/route/subdomain/claims resolution. | 🔲     |
+| 6.4 | Unit tests: Configuration provider     | Test JsonFileTenantStore, InMemoryTenantStore, caching behavior. | 🔲     |
+| 6.5 | Unit tests: Certificate providers      | Test certificate providers and error handling. | 🔲     |
+| 6.6 | Unit tests: Factory integration        | End-to-end test with InMemoryTenantStore and mock handlers. | 🔲     |
+| 6.7 | Unit tests: Handler cache lifecycle    | Test handler creation, reuse, expiry, grace period, concurrent access. | 🔲     |
+| 6.8 | Integration tests: Hot-reload          | Test config changes, cert rotation, tenant removal at runtime. | 🔲     |
 
 ---
 
