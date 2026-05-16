@@ -146,12 +146,20 @@ internal class TenantHandlerCache : IDisposable
         // Load client certificate if configured
         if (config.Certificate != null)
         {
-            var cert = _certificateProvider.GetCertificateAsync(config.Certificate).GetAwaiter().GetResult();
-            if (cert != null)
+            try
             {
-                handler.SslOptions.ClientCertificates ??= new System.Security.Cryptography.X509Certificates.X509Certificate2Collection();
-                handler.SslOptions.ClientCertificates.Add(cert);
-                _logger.LogDebug("Loaded certificate for tenant");
+                var cert = _certificateProvider.GetCertificateAsync(config.Certificate).GetAwaiter().GetResult();
+                if (cert != null)
+                {
+                    handler.SslOptions.ClientCertificates ??= new System.Security.Cryptography.X509Certificates.X509Certificate2Collection();
+                    handler.SslOptions.ClientCertificates.Add(cert);
+                    _logger.LogDebug("Loaded certificate for tenant with thumbprint {Thumbprint}", cert.Thumbprint);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail -- handler will work without cert (HTTPS without mTLS)
+                _logger.LogWarning(ex, "Failed to load certificate for tenant. Handler will continue without client certificate");
             }
         }
 

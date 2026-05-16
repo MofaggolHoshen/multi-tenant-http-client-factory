@@ -145,7 +145,7 @@ MultiTenantHttpClientFactory.sln
 
 ---
 
-### Phase 5: Hot-Reload & Lifecycle — 🔲 Not Started
+### Phase 5: Hot-Reload & Lifecycle — ✅ Complete
 
 > **Goal**: Ensure the library responds gracefully to configuration changes at runtime — new tenants, removed tenants, rotated certificates — without requiring a restart and without leaking resources.
 
