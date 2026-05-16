@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using MultiTenantHttpClientFactory.Abstractions;
+using MultiTenantHttpClientFactory.DependencyInjection;
 
 namespace MultiTenantHttpClientFactory;
 
@@ -100,41 +101,4 @@ internal class TenantResolutionMiddleware
 
         await _next(context);
     }
-}
-
-/// <summary>
-/// Options for configuring TenantResolutionMiddleware behavior.
-/// </summary>
-public class TenantResolutionOptions
-{
-    /// <summary>
-    /// Determines how the middleware behaves when tenant resolution fails.
-    /// </summary>
-    public TenantResolutionFailureMode FailureMode { get; set; } = TenantResolutionFailureMode.PassThrough;
-
-    /// <summary>
-    /// Custom handler to invoke when tenant resolution fails (only if FailureMode is InvokeCustomHandler).
-    /// </summary>
-    public Func<HttpContext, Task>? CustomFailureHandler { get; set; }
-}
-
-/// <summary>
-/// Enum indicating how to handle tenant resolution failures.
-/// </summary>
-public enum TenantResolutionFailureMode
-{
-    /// <summary>
-    /// Allow the request to continue to the next middleware.
-    /// </summary>
-    PassThrough = 0,
-
-    /// <summary>
-    /// Return a 400 Bad Request response.
-    /// </summary>
-    ReturnBadRequest = 1,
-
-    /// <summary>
-    /// Invoke a custom handler delegate.
-    /// </summary>
-    InvokeCustomHandler = 2
 }
