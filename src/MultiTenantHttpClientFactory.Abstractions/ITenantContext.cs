@@ -10,12 +10,12 @@ public interface ITenantContext
     /// <summary>
     /// The resolved tenant identifier for the current request.
     /// </summary>
-    string? TenantId { get; }
+    string? TenantId { get; set; }
 
     /// <summary>
     /// The full tenant configuration for the current request.
     /// </summary>
-    TenantConfiguration? Configuration { get; }
+    TenantConfiguration? Configuration { get; set; }
 
     /// <summary>
     /// Indicates whether a tenant has been successfully resolved.
