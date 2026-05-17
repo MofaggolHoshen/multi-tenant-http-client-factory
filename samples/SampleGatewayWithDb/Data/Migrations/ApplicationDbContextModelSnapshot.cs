@@ -160,7 +160,7 @@ namespace SampleGatewayWithDb.Data.Migrations
                     b.HasOne("SampleGatewayWithDb.Data.EndpointEntity", "Endpoint")
                         .WithOne("Certificate")
                         .HasForeignKey("SampleGatewayWithDb.Data.CertificateEntity", "EndpointId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SampleGatewayWithDb.Data.TenantEntity", "Tenant")
                         .WithOne("Certificate")

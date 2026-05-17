@@ -60,7 +60,7 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Certificate)
                 .WithOne(c => c.Endpoint)
                 .HasForeignKey<CertificateEntity>(c => c.EndpointId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // Configure TenantHeader entity

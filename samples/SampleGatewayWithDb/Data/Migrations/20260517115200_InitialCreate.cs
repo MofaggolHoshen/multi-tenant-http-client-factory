@@ -90,7 +90,7 @@ namespace SampleGatewayWithDb.Data.Migrations
                         column: x => x.EndpointId,
                         principalTable: "Endpoints",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_Certificates_Tenants_TenantId",
                         column: x => x.TenantId,
