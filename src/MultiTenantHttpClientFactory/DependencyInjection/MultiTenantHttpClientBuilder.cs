@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MultiTenantHttpClientFactory.Abstractions;
 using MultiTenantHttpClientFactory.Certificates;
@@ -37,6 +37,7 @@ public class MultiTenantHttpClientBuilder
             throw new ArgumentNullException(nameof(resolver));
 
         _resolvers.Add(resolver);
+        _services.AddSingleton<ITenantResolver>(resolver);
         return this;
     }
 
@@ -67,11 +68,39 @@ public class MultiTenantHttpClientBuilder
 
     /// <summary>
     /// Registers JSON configuration-based tenant store.
+    /// Reads tenant configuration from the specified section in appsettings.json.
+    /// IConfiguration must be registered in the service collection before building the host.
+    /// Uses array format where each item includes TenantId for consistency with other stores (e.g., database).
     /// </summary>
     public MultiTenantHttpClientBuilder WithJsonConfiguration(string sectionName = "Tenants")
     {
-        _services.Configure<Dictionary<string, MultiTenantHttpClientFactory.Abstractions.Models.TenantConfiguration>>(
-            sectionName, options => { });
+        _services.AddOptions<JsonTenantStoreOptions>()
+            .Configure<Microsoft.Extensions.Configuration.IConfiguration>((options, configuration) =>
+            {
+                var section = configuration.GetSection(sectionName);
+                var tenants = new List<MultiTenantHttpClientFactory.Abstractions.Models.TenantConfiguration>();
+                section.Bind(tenants);
+
+                options.Tenants.Clear();
+
+                foreach (var tenant in tenants)
+                {
+                    if (string.IsNullOrWhiteSpace(tenant.TenantId))
+                    {
+                        continue;
+                    }
+
+                    var normalizedTenantId = tenant.TenantId.Trim();
+                    if (options.Tenants.ContainsKey(normalizedTenantId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Duplicate TenantId '{normalizedTenantId}' found in configuration section '{sectionName}'. TenantId values must be unique.");
+                    }
+
+                    tenant.TenantId = normalizedTenantId;
+                    options.Tenants[normalizedTenantId] = tenant;
+                }
+            });
 
         _services.AddSingleton<ITenantStore, JsonFileTenantStore>();
         return this;

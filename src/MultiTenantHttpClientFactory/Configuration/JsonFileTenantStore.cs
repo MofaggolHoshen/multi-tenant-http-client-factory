@@ -17,13 +17,13 @@ namespace MultiTenantHttpClientFactory.Configuration;
 /// </summary>
 internal class JsonFileTenantStore : ITenantStore
 {
-    private readonly IOptionsMonitor<Dictionary<string, TenantConfiguration>> _optionsMonitor;
+    private readonly IOptionsMonitor<JsonTenantStoreOptions> _optionsMonitor;
     private readonly ILogger<JsonFileTenantStore> _logger;
     private CancellationTokenSource _changeTokenSource;
     private IDisposable? _changeSubscription;
 
     public JsonFileTenantStore(
-        IOptionsMonitor<Dictionary<string, TenantConfiguration>> optionsMonitor,
+        IOptionsMonitor<JsonTenantStoreOptions> optionsMonitor,
         ILogger<JsonFileTenantStore> logger)
     {
         _optionsMonitor = optionsMonitor ?? throw new ArgumentNullException(nameof(optionsMonitor));
@@ -31,7 +31,7 @@ internal class JsonFileTenantStore : ITenantStore
         _changeTokenSource = new CancellationTokenSource();
 
         // Subscribe to configuration changes
-        _changeSubscription = optionsMonitor.OnChange((config, name) =>
+        _changeSubscription = optionsMonitor.OnChange((options, name) =>
         {
             _logger.LogInformation("Tenant configuration changed");
             FireChangeToken();
@@ -40,8 +40,8 @@ internal class JsonFileTenantStore : ITenantStore
 
     public Task<TenantConfiguration?> GetTenantAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        var tenants = _optionsMonitor.CurrentValue;
-        if (tenants == null || !tenants.TryGetValue(tenantId, out var config))
+        var tenants = _optionsMonitor.CurrentValue.Tenants;
+        if (!tenants.TryGetValue(tenantId, out var config))
             return Task.FromResult<TenantConfiguration?>(null);
 
         return Task.FromResult<TenantConfiguration?>(config);
@@ -49,7 +49,7 @@ internal class JsonFileTenantStore : ITenantStore
 
     public Task<IReadOnlyList<TenantConfiguration>> GetAllTenantsAsync(CancellationToken cancellationToken = default)
     {
-        var tenants = _optionsMonitor.CurrentValue ?? new Dictionary<string, TenantConfiguration>();
+        var tenants = _optionsMonitor.CurrentValue.Tenants;
         return Task.FromResult<IReadOnlyList<TenantConfiguration>>(tenants.Values.ToList());
     }
 

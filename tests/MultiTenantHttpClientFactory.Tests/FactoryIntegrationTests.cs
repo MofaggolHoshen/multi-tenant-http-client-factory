@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using MultiTenantHttpClientFactory.Abstractions;
@@ -179,5 +180,36 @@ public class FactoryIntegrationTests
         Assert.NotNull(factory);
         using var client = factory.CreateClient("di-tenant", null);
         Assert.Equal(new Uri("https://di.example.com"), client.BaseAddress);
+    }
+
+    [Fact]
+    public void WithJsonConfiguration_Throws_WhenTenantIdsAreDuplicated()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        var values = new Dictionary<string, string?>
+        {
+            ["Tenants:0:TenantId"] = "tenant-a",
+            ["Tenants:0:DefaultEndpoint:BaseAddress"] = "https://a.example.com",
+            ["Tenants:1:TenantId"] = "TENANT-A",
+            ["Tenants:1:DefaultEndpoint:BaseAddress"] = "https://b.example.com"
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(values)
+            .Build();
+
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddMultiTenantHttpClientFactory()
+            .WithJsonConfiguration("Tenants");
+
+        using var sp = services.BuildServiceProvider();
+        var store = sp.GetRequiredService<ITenantStore>();
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => store.GetTenantAsync("tenant-a").GetAwaiter().GetResult());
+
+        Assert.Contains("Duplicate TenantId", ex.Message);
     }
 }

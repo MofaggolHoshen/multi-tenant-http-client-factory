@@ -16,7 +16,7 @@ public class TenantConfiguration
     /// <summary>
     /// Named endpoints for this tenant, keyed by logical name.
     /// </summary>
-    public Dictionary<string, EndpointConfiguration> Endpoints { get; set; } = new(StringComparer.Ordinal);
+    public Dictionary<string, EndpointConfiguration> Endpoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// The default endpoint to use when no specific endpoint name is requested.

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using MultiTenantHttpClientFactory.Abstractions;
@@ -30,15 +32,21 @@ public static class ServiceCollectionExtensions
         // Register handler cache
         services.AddSingleton<TenantHandlerCache>();
 
-        // Register factory
-        services.AddSingleton<ITenantHttpClientFactory, TenantHttpClientFactory>();
+        // Register factory as scoped (it depends on scoped ITenantContext)
+        services.AddScoped<ITenantHttpClientFactory, TenantHttpClientFactory>();
 
         // Register tenant context as scoped
         services.AddScoped<ITenantContext, TenantContext>();
 
-        // Register composite tenant resolver (will be populated by builder)
+        // Register composite tenant resolver - it will resolve all registered ITenantResolver instances
         services.AddSingleton<CompositeTenantResolver>(sp =>
-            new CompositeTenantResolver(new List<ITenantResolver>(), sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CompositeTenantResolver>>()));
+        {
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CompositeTenantResolver>>();
+            var resolvers = sp.GetServices<ITenantResolver>()
+                .Where(r => r is not CompositeTenantResolver)
+                .ToList();
+            return new CompositeTenantResolver(resolvers, logger);
+        });
         services.AddSingleton<ITenantResolver>(sp => sp.GetRequiredService<CompositeTenantResolver>());
 
         // Register basic certificate providers
