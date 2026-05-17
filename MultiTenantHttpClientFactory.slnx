@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/SampleGateway/SampleGateway.csproj" />
+    <Project Path="samples/SampleGatewayWithDb/SampleGatewayWithDb.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MultiTenantHttpClientFactory.Abstractions/MultiTenantHttpClientFactory.Abstractions.csproj" />
