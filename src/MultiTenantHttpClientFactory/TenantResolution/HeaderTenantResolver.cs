@@ -24,7 +24,10 @@ public class HeaderTenantResolver : ITenantResolver
     public Task<string?> ResolveAsync(HttpContext context, CancellationToken cancellationToken = default)
     {
         if (context?.Request == null)
+        {
+            _logger?.LogWarning("HttpContext or Request is null, cannot resolve tenant from header {HeaderName}", _headerName);
             return Task.FromResult<string?>(null);
+        }
 
         if (context.Request.Headers.TryGetValue(_headerName, out var tenantId))
         {
@@ -34,8 +37,12 @@ public class HeaderTenantResolver : ITenantResolver
                 _logger?.LogDebug("Tenant resolved from header {HeaderName}: {TenantId}", _headerName, value);
                 return Task.FromResult<string?>(value);
             }
+
+            _logger?.LogWarning("Header {HeaderName} is present but empty", _headerName);
+            return Task.FromResult<string?>(null);
         }
 
+        _logger?.LogWarning("Required header {HeaderName} is missing from request", _headerName);
         return Task.FromResult<string?>(null);
     }
 }
