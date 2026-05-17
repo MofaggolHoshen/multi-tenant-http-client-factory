@@ -1,4 +1,12 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/ARCHITECTURE.md" />
+    <File Path="docs/DATA_FLOW.md" />
+    <File Path="docs/IMPLEMENTATION_PLAN.md" />
+    <File Path="docs/INDEX.md" />
+    <File Path="docs/OVERVIEW.md" />
+    <File Path="docs/QUICK_REFERENCE.md" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/SampleGateway/SampleGateway.csproj" />
   </Folder>

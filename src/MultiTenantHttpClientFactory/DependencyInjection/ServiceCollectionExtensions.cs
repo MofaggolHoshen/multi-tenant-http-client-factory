@@ -30,8 +30,8 @@ public static class ServiceCollectionExtensions
         // Register handler cache
         services.AddSingleton<TenantHandlerCache>();
 
-        // Register factory
-        services.AddSingleton<ITenantHttpClientFactory, TenantHttpClientFactory>();
+        // Register factory as scoped (it depends on scoped ITenantContext)
+        services.AddScoped<ITenantHttpClientFactory, TenantHttpClientFactory>();
 
         // Register tenant context as scoped
         services.AddScoped<ITenantContext, TenantContext>();
