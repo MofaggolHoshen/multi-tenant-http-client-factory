@@ -37,6 +37,7 @@ public class MultiTenantHttpClientBuilder
             throw new ArgumentNullException(nameof(resolver));
 
         _resolvers.Add(resolver);
+        _services.AddSingleton<ITenantResolver>(resolver);
         return this;
     }
 
