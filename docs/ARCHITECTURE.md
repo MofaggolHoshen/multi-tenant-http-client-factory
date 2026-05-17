@@ -80,17 +80,17 @@ The Multi-Tenant HttpClientFactory is a .NET library that extends the standard `
          │    │TenantStore│           │TenantStore│
          │    └───────────┘           └───────────┘
          │
-         ▼
-    ┌──────────────────────────────┐
-    │TenantConfiguration            │
-    │- TenantId                     │
-    │- DefaultEndpoint              │
-    │- Named Endpoints              │
-    │- DefaultHeaders               │
-    │- Certificate Config           │
-    │- Timeout                      │
-    │- HandlerLifetime              │
-    └──────────┬───────────────────┘
+              ▼
+         ┌──────────────────────────────┐
+         │TenantConfiguration            │
+         │- TenantId                     │
+         │- DefaultEndpointName          │
+         │- Named Endpoints              │
+         │- DefaultHeaders               │
+         │- Certificate Config           │
+         │- Timeout                      │
+         │- HandlerLifetime              │
+         └──────────┬───────────────────┘
                │
                ▼
     ┌──────────────────────────────┐
@@ -214,14 +214,14 @@ Factory constructs the **HttpClient** instance:
 {
   "Tenants": {
     "tenant-a": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.tenant-a.example.com",
-        "Headers": {
-          "X-Api-Key": "secret-key-a",
-          "X-Custom-Header": "value"
-        }
-      },
       "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.tenant-a.example.com",
+          "Headers": {
+            "X-Api-Key": "secret-key-a",
+            "X-Custom-Header": "value"
+          }
+        },
         "webhook": {
           "BaseAddress": "https://webhooks.tenant-a.example.com",
           "Headers": {
@@ -229,6 +229,7 @@ Factory constructs the **HttpClient** instance:
           }
         }
       },
+      "DefaultEndpointName": "default",
       "Certificate": {
         "Type": "File",
         "Path": "certs/tenant-a.pfx",
@@ -238,9 +239,12 @@ Factory constructs the **HttpClient** instance:
       "HandlerLifetime": "00:05:00"
     },
     "tenant-b": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.tenant-b.example.com"
+      "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.tenant-b.example.com"
+        }
       },
+      "DefaultEndpointName": "default",
       "Certificate": {
         "Type": "Store",
         "Thumbprint": "ABCD1234..."

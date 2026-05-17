@@ -122,10 +122,13 @@ var client = tenantHttpClientFactory.CreateClient();
 {
   "Tenants": {
     "tenant-a": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.tenant-a.example.com",
-        "Headers": { "X-Api-Key": "key-a" }
+      "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.tenant-a.example.com",
+          "Headers": { "X-Api-Key": "key-a" }
+        }
       },
+      "DefaultEndpointName": "default",
       "Certificate": {
         "Type": "File",
         "Path": "certs/tenant-a.pfx",
@@ -137,6 +140,8 @@ var client = tenantHttpClientFactory.CreateClient();
   }
 }
 ```
+
+**Note:** If a tenant has exactly one endpoint, `DefaultEndpointName` can be omitted and will be auto-inferred. For tenants with multiple endpoints, `DefaultEndpointName` is required and must reference an existing endpoint key.
 
 ## Target Frameworks
 

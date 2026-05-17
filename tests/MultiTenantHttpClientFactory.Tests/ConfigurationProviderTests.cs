@@ -37,14 +37,24 @@ public class ConfigurationProviderTests
     public async Task InMemoryStore_UpdatesTenant()
     {
         var store = new InMemoryTenantStore();
-        var original = new TenantConfiguration { TenantId = "t1", DefaultEndpoint = new EndpointConfiguration { BaseAddress = new Uri("https://v1.example.com") } };
+        var original = new TenantConfiguration 
+        { 
+            TenantId = "t1", 
+            Endpoints = new() { ["v1"] = new EndpointConfiguration { BaseAddress = new Uri("https://v1.example.com") } },
+            DefaultEndpointName = "v1"
+        };
         store.AddOrUpdate(original);
 
-        var updated = new TenantConfiguration { TenantId = "t1", DefaultEndpoint = new EndpointConfiguration { BaseAddress = new Uri("https://v2.example.com") } };
+        var updated = new TenantConfiguration 
+        { 
+            TenantId = "t1", 
+            Endpoints = new() { ["v2"] = new EndpointConfiguration { BaseAddress = new Uri("https://v2.example.com") } },
+            DefaultEndpointName = "v2"
+        };
         store.AddOrUpdate(updated);
 
         var result = await store.GetTenantAsync("t1");
-        Assert.Equal(new Uri("https://v2.example.com"), result!.DefaultEndpoint!.BaseAddress);
+        Assert.Equal(new Uri("https://v2.example.com"), result!.Endpoints["v2"].BaseAddress);
     }
 
     [Fact]
@@ -151,21 +161,34 @@ public class ConfigurationProviderTests
     {
         var ep1 = new EndpointConfiguration { BaseAddress = new Uri("https://v1.example.com") };
         var ep2 = new EndpointConfiguration { BaseAddress = new Uri("https://v2.example.com") };
-        var store = new InMemoryTenantStore(new[] { new TenantConfiguration { TenantId = "t1", DefaultEndpoint = ep1 } });
+        var store = new InMemoryTenantStore(new[] 
+        { 
+            new TenantConfiguration 
+            { 
+                TenantId = "t1", 
+                Endpoints = new() { ["main"] = ep1 },
+                DefaultEndpointName = "main"
+            } 
+        });
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var provider = new TenantConfigurationProvider(store, cache, NullLogger<TenantConfigurationProvider>.Instance);
 
         var first = await provider.GetConfigurationAsync("t1");
-        Assert.Equal(new Uri("https://v1.example.com"), first!.DefaultEndpoint!.BaseAddress);
+        Assert.Equal(new Uri("https://v1.example.com"), first!.Endpoints["main"].BaseAddress);
 
         // Update the store (fires change token)
-        store.AddOrUpdate(new TenantConfiguration { TenantId = "t1", DefaultEndpoint = ep2 });
+        store.AddOrUpdate(new TenantConfiguration 
+        { 
+            TenantId = "t1", 
+            Endpoints = new() { ["main"] = ep2 },
+            DefaultEndpointName = "main"
+        });
 
         // Give change token callbacks a moment to propagate
         await Task.Delay(50);
 
         var second = await provider.GetConfigurationAsync("t1");
-        Assert.Equal(new Uri("https://v2.example.com"), second!.DefaultEndpoint!.BaseAddress);
+        Assert.Equal(new Uri("https://v2.example.com"), second!.Endpoints["main"].BaseAddress);
     }
 
     [Fact]

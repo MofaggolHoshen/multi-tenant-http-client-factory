@@ -19,9 +19,12 @@ public class TenantConfiguration
     public Dictionary<string, EndpointConfiguration> Endpoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The default endpoint to use when no specific endpoint name is requested.
+    /// The name of the default endpoint to use when no specific endpoint name is requested.
+    /// This is a reference key that must exist in the <see cref="Endpoints"/> dictionary.
+    /// If null or empty and the tenant has exactly one endpoint, that endpoint will be used automatically.
+    /// If null or empty and the tenant has multiple endpoints, validation will fail at startup.
     /// </summary>
-    public EndpointConfiguration? DefaultEndpoint { get; set; }
+    public string? DefaultEndpointName { get; set; }
 
     /// <summary>
     /// Certificate configuration at the tenant level (default for all endpoints).

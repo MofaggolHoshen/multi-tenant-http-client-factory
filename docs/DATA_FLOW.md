@@ -190,16 +190,18 @@ TenantId: "abc"
               │  ┌──────────────────────────┐ │
               │  │TenantConfiguration {     │ │
               │  │  TenantId: "abc"         │ │
-              │  │  DefaultEndpoint: {      │ │
-              │  │    BaseAddress: "https://│ │
-              │  │     api.abc.com"         │ │
-              │  │    Headers: {            │ │
-              │  │      "X-Api-Key": "k123"│ │
-              │  │    }                     │ │
-              │  │  }                       │ │
               │  │  Endpoints: {            │ │
+              │  │    "default": {          │ │
+              │  │      BaseAddress: "https:│ │
+              │  │       //api.abc.com"     │ │
+              │  │      Headers: {          │ │
+              │  │        "X-Api-Key": "k123│ │
+              │  │      }                   │ │
+              │  │    },                    │ │
               │  │    "webhook": {...}      │ │
               │  │  }                       │ │
+              │  │  DefaultEndpointName:    │ │
+              │  │    "default"             │ │
               │  │  Certificate: {...}      │ │
               │  │  Timeout: 30s            │ │
               │  │  HandlerLifetime: 5min   │ │
