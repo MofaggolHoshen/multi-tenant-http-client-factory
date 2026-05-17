@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using MultiTenantHttpClientFactory.Abstractions;
 using MultiTenantHttpClientFactory.Abstractions.Models;
@@ -12,23 +11,22 @@ namespace SampleGatewayWithDb.Data;
 
 /// <summary>
 /// ITenantStore implementation using Entity Framework Core.
-/// Registered as Singleton; uses IServiceScopeFactory to safely consume the
-/// Scoped ApplicationDbContext from within the Singleton TenantConfigurationProvider.
+/// Registered as Singleton; uses IDbContextFactory to safely create short-lived
+/// DbContext instances per operation without depending on the scoped DI container.
 /// </summary>
 public class DatabaseTenantStore : ITenantStore
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private CancellationTokenSource _changeTokenSource = new();
 
-    public DatabaseTenantStore(IServiceScopeFactory scopeFactory)
+    public DatabaseTenantStore(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
     }
 
     public async Task<TenantConfiguration?> GetTenantAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
         var tenantEntity = await context.Tenants
             .AsNoTracking()
@@ -43,8 +41,7 @@ public class DatabaseTenantStore : ITenantStore
 
     public async Task<IReadOnlyList<TenantConfiguration>> GetAllTenantsAsync(CancellationToken cancellationToken = default)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
         var tenantEntities = await context.Tenants
             .AsNoTracking()
