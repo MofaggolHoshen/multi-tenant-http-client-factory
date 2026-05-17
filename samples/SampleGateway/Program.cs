@@ -57,7 +57,7 @@ async Task<IResult> ProxyRequest(
         logger.LogInformation("Proxying request to tenant {TenantId}, path: {Path}", tenantId, path);
 
         // Create a client for the specified tenant
-        using var client = clientFactory.CreateClient(tenantId);
+        using var client = clientFactory.CreateClient(tenantId: tenantId);
 
         // Forward the request body
         var requestBody = context.Request.Body.CanSeek

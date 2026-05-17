@@ -315,14 +315,14 @@ Different tenant = different Service B endpoint
 {
   "Tenants": {
     "acme-corp": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.acme.example.com",
-        "Headers": {
-          "X-Api-Key": "acme-secret-key",
-          "Authorization": "Bearer token123"
-        }
-      },
       "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.acme.example.com",
+          "Headers": {
+            "X-Api-Key": "acme-secret-key",
+            "Authorization": "Bearer token123"
+          }
+        },
         "webhook": {
           "BaseAddress": "https://webhooks.acme.example.com",
           "Headers": {
@@ -330,6 +330,7 @@ Different tenant = different Service B endpoint
           }
         }
       },
+      "DefaultEndpointName": "default",
       "Certificate": {
         "Type": "File",
         "Path": "certs/acme.pfx",
@@ -339,9 +340,12 @@ Different tenant = different Service B endpoint
       "HandlerLifetime": "00:05:00"
     },
     "globex-inc": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.globex.example.com"
-      }
+      "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.globex.example.com"
+        }
+      },
+      "DefaultEndpointName": "default"
       // ... more config
     }
   }

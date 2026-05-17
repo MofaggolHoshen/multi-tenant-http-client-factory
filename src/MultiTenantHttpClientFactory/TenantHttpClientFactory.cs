@@ -66,27 +66,42 @@ internal class TenantHttpClientFactory : ITenantHttpClientFactory
 
     private HttpClient CreateClientInternal(TenantConfiguration config, string? endpointName)
     {
-        // Determine which endpoint configuration to use
-        EndpointConfiguration? endpointConfig = null;
+        // Determine which endpoint name to use
+        string resolvedEndpointName;
 
-        if (!string.IsNullOrEmpty(endpointName) && config.Endpoints.TryGetValue(endpointName, out var namedEndpoint))
+        if (!string.IsNullOrEmpty(endpointName))
         {
-            endpointConfig = namedEndpoint;
+            // Explicit endpoint name provided
+            resolvedEndpointName = endpointName;
         }
-        else if (config.DefaultEndpoint != null)
+        else if (!string.IsNullOrEmpty(config.DefaultEndpointName))
         {
-            endpointConfig = config.DefaultEndpoint;
+            // Use configured default endpoint
+            resolvedEndpointName = config.DefaultEndpointName;
+        }
+        else
+        {
+            // This should never happen after validation, but provide a clear error
+            throw new InvalidOperationException(
+                $"No endpoint name specified and tenant {config.TenantId} has no DefaultEndpointName configured.");
+        }
+
+        // Lookup the endpoint configuration
+        if (!config.Endpoints.TryGetValue(resolvedEndpointName, out var endpointConfig))
+        {
+            throw new InvalidOperationException(
+                $"Endpoint '{resolvedEndpointName}' not found for tenant {config.TenantId}. " +
+                $"Available endpoints: {string.Join(", ", config.Endpoints.Keys)}");
         }
 
         if (endpointConfig?.BaseAddress == null)
         {
             throw new InvalidOperationException(
-                $"No valid endpoint configuration found for tenant {config.TenantId}. " +
-                $"Requested endpoint: {endpointName ?? "default"}");
+                $"Endpoint '{resolvedEndpointName}' for tenant {config.TenantId} has no BaseAddress configured.");
         }
 
         // Get or create a handler for this tenant/endpoint combination
-        var handler = _handlerCache.GetOrCreateHandler(config.TenantId!, endpointName);
+        var handler = _handlerCache.GetOrCreateHandler(config.TenantId!, resolvedEndpointName);
 
         // Create the HttpClient
         var httpClient = new HttpClient(handler, disposeHandler: false)

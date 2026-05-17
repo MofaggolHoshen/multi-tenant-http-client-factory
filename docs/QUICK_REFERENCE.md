@@ -117,15 +117,16 @@ var client = factory.CreateClient("tenant-id");  // Explicit (background job)
 {
   "Tenants": {
     "tenant-id": {
-      "DefaultEndpoint": {
-        "BaseAddress": "https://api.tenant.com",
-        "Headers": { "X-Api-Key": "secret" }
-      },
       "Endpoints": {
+        "default": {
+          "BaseAddress": "https://api.tenant.com",
+          "Headers": { "X-Api-Key": "secret" }
+        },
         "webhook": {
           "BaseAddress": "https://webhooks.tenant.com"
         }
       },
+      "DefaultEndpointName": "default",
       "Certificate": {
         "Type": "File",
         "Path": "certs/tenant.pfx",
@@ -137,6 +138,11 @@ var client = factory.CreateClient("tenant-id");  // Explicit (background job)
   }
 }
 ```
+
+**Notes:**
+- `DefaultEndpointName` references a key in the `Endpoints` dictionary
+- For single-endpoint tenants, `DefaultEndpointName` can be omitted (auto-inferred)
+- For multi-endpoint tenants, `DefaultEndpointName` is required
 
 ---
 

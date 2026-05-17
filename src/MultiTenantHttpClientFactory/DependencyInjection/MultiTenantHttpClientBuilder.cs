@@ -98,6 +98,19 @@ public class MultiTenantHttpClientBuilder
                     }
 
                     tenant.TenantId = normalizedTenantId;
+
+                    // Validate and normalize the tenant configuration
+                    try
+                    {
+                        TenantConfigurationValidator.ValidateAndNormalize(tenant);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"Configuration validation failed for tenant '{normalizedTenantId}' in section '{sectionName}': {ex.Message}",
+                            ex);
+                    }
+
                     options.Tenants[normalizedTenantId] = tenant;
                 }
             });
