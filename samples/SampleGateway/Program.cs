@@ -36,16 +36,27 @@ app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.UseHttpsRedirection();
 
-app.MapPost("/proxy/{tenantId}/{*path}", ProxyRequest)
-    .WithName("ProxyRequest")
+//https://jsonplaceholder.typicode.com/guide/
+
+app.MapGet("/proxy1/{*path}", ProxyGetRequestResolvedWithHeader)
+    .WithName("ProxyRequestHeader")
     .WithOpenApi()
     .Produces<string>(StatusCodes.Status200OK)
     .Produces(StatusCodes.Status400BadRequest)
     .Produces(StatusCodes.Status500InternalServerError);
 
+app.MapGet("/proxy2/{tenantId}/{*path}", ProxyGetRequestResolvedWithTenant)
+    .WithName("ProxyRequestTenant")
+    .WithOpenApi()
+    .Produces<string>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status500InternalServerError);
+
+
+
 app.Run();
 
-async Task<IResult> ProxyRequest(
+async Task<IResult> ProxyGetRequestResolvedWithTenant(
     string tenantId,
     string path,
     HttpContext context,
@@ -59,16 +70,7 @@ async Task<IResult> ProxyRequest(
         // Create a client for the specified tenant
         using var client = clientFactory.CreateClient(tenantId: tenantId);
 
-        // Forward the request body
-        var requestBody = context.Request.Body.CanSeek
-            ? await new StreamReader(context.Request.Body).ReadToEndAsync()
-            : string.Empty;
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, path);
-        if (!string.IsNullOrEmpty(requestBody))
-        {
-            request.Content = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
-        }
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
 
         // Forward headers (excluding host-specific headers)
         foreach (var (key, value) in context.Request.Headers)
@@ -79,6 +81,7 @@ async Task<IResult> ProxyRequest(
             }
         }
 
+        
         var response = await client.SendAsync(request);
 
         var responseContent = await response.Content.ReadAsStringAsync();
@@ -94,6 +97,50 @@ async Task<IResult> ProxyRequest(
     catch (Exception ex)
     {
         logger.LogError(ex, "Error proxying request for tenant {TenantId}", tenantId);
+        return Results.StatusCode(StatusCodes.Status500InternalServerError);
+    }
+}
+
+async Task<IResult> ProxyGetRequestResolvedWithHeader(
+    string path,
+    HttpContext context,
+    ITenantHttpClientFactory clientFactory,
+    ILogger<Program> logger)
+{
+    try
+    {
+        logger.LogInformation("Proxying request to tenant path: {Path}", path);
+
+        // Create a client using tenant resolution from headers
+        using var client = clientFactory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+
+        // Forward headers (excluding host-specific headers)
+        foreach (var (key, value) in context.Request.Headers)
+        {
+            if (!new[] { "Host", "Content-Length", "Transfer-Encoding" }.Contains(key))
+            {
+                request.Headers.TryAddWithoutValidation(key, (string?)value);
+            }
+        }
+
+
+        var response = await client.SendAsync(request);
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        logger.LogInformation("Proxy response status: {StatusCode}", response.StatusCode);
+
+        return Results.Text(responseContent, statusCode: (int)response.StatusCode);
+    }
+    catch (TenantNotFoundException ex)
+    {
+        logger.LogWarning(ex, "Tenant not found");
+        return Results.BadRequest(new { error = "Tenant not found" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error proxying request for tenant");
         return Results.StatusCode(StatusCodes.Status500InternalServerError);
     }
 }
