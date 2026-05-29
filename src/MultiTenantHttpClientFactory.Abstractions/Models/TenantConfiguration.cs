@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MultiTenantHttpClientFactory.Abstractions.Models;
 
@@ -48,4 +49,40 @@ public class TenantConfiguration
     /// Controls how long a handler instance is reused before being rotated.
     /// </summary>
     public TimeSpan? HandlerLifetime { get; set; }
+
+    /// <summary>
+    /// Convenience property for single-endpoint tenants.
+    /// When set, automatically populates Endpoints["default"] and sets DefaultEndpointName to "default".
+    /// When get, returns the endpoint specified by DefaultEndpointName or the single endpoint if one exists.
+    /// </summary>
+    public EndpointConfiguration? DefaultEndpoint
+    {
+        get
+        {
+            if (Endpoints.Count == 0)
+                return null;
+
+            if (!string.IsNullOrEmpty(DefaultEndpointName) && Endpoints.TryGetValue(DefaultEndpointName!, out var endpoint))
+                return endpoint;
+
+            if (Endpoints.Count == 1)
+                return Endpoints.Values.First();
+
+            return null;
+        }
+        set
+        {
+            if (value != null)
+            {
+                Endpoints["default"] = value;
+                DefaultEndpointName = "default";
+            }
+            else
+            {
+                Endpoints.Remove("default");
+                if (DefaultEndpointName == "default")
+                    DefaultEndpointName = null;
+            }
+        }
+    }
 }
